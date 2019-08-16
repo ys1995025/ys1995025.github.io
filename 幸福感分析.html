@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>幸福感分析 | for data analysis</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="author" content="送温暖的蝎子莱莱的blog">
+  <meta name="keywords" content="excel,sql,python">
+  <meta name="description" content="数据分析学习记录">
+  <script id="hexo-configurations">
+  var CONFIG = {
+    root: '/',
+    theme: 'hexo-theme-lx-master',
+    version: '1.4.5',
+    localsearch:{
+      "enable": true,
+      "trigger": "auto",
+      "top_n_per_article": 1,
+      "unescape": false,
+      "preload": false
+      },
+    path: 'search.xml'
+  };
+</script>
+
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/main.css">
+  <script src="/js/jquery.min.js"></script>
+  <script src="/js/jquery.jside.menu.js"></script>
+	<script>
+	$(document).ready(function(){
+	$(".menu-container").jSideMenu({
+	    jSidePosition: "position-right",
+	    jSideSticky: true,
+	    jSideSkin: "endless-river",
+	     });
+	}); 
+	</script>
+  
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat:300|Noto+Serif+SC&amp;display=swap">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4/css/font-awesome.min.css">
+</head>
+<body>
+<div class="single">
+<div id="page">
+<div id="lx-aside" style="background-image: url(/images/page-cover.jpg)" data-stellar-background-ratio="0.5">
+  <div class="overlay">
+  <div class="page-title">
+    <div class="avatar"><a href="/"><img src="\images\1.jpg"></a></div>
+    <span>2019-08-11</span>
+    <h2>幸福感分析</h2>
+    <div class="tags"><i class="fa fa-tag"></i><a class="tag-link" href="/tags/data-analysis/">data analysis</a></div>
+    </div>
+</div>
+</div>
+<div id="lx-main-content">
+  <div class="lx-post">
+    <div class="lx-entry padding">
+      <div>
+        <p>本文是基于天池数据大赛新人赛项目“快来挖掘幸福感”的数据分析<br>赛题链接 <a href="https://tianchi.aliyun.com/competition/entrance/231702/introduction" target="_blank" rel="noopener">https://tianchi.aliyun.com/competition/entrance/231702/introduction</a> </p>
+<br>
+本文将按照以下步骤进行数据分析：
+    1.提出问题
+    2.数据读取
+    3.特征工程
+    4.可视化分析
+    5.建立模型
+    6.分析结果
+<br>
+一、提出问题
+    幸福感是指人类基于自身的满足感与安全感而主观产生的一系列欣喜与愉悦的情绪。
+    现代化给人类带来的一个重要成就无疑是物质生活条件的不断改善和生活质量的日益提高。然而，现代化又是一个充满悖论的进程，与客观福祉的提高形成比照的是主观幸福并没有呈现相应程度的上升，这无疑构成了现代化的一种困境。
+    本次分析将一窥幸福感的要义，进而去提升人民幸福感。
+
+<br>
+<br>
+
+<p>数据来源于中国综合社会调查(CGSS)2015年度调查问卷(居民问卷)<br>具体指标如下：<br><img src="/images/1.1.png" alt><br><img src="/images/1.2.png" alt><br><img src="/images/1.3.png" alt><br><img src="/images/1.4.png" alt><br><img src="/images/1.5.png" alt></p>
+<p>现提出主要问题如下：<br>    1.调查人群数据中的幸福状况如何<br>    2.什么因素会影响一个人的幸福感？<br>    3.如何预测人民的幸福指数<br>    针对问题一：利用matplotlib、seaborn库对数据集进行可视化描述性统计；<br>    针对问题二：采用lightgbm算法进行回归分析，按特征重要性大小顺序排序；<br>    针对问题三：利用训练得到的模型，对测试集进行预测分析。</p>
+<br>
+二、数据读取
+    分析工具为：spyder
+<br>
+导入分析所需的包
+
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> sys</span><br><span class="line">sys.path</span><br><span class="line">sys.path.append(<span class="string">"E:\\shuju"</span>)</span><br><span class="line"><span class="keyword">import</span> pandas as pd</span><br><span class="line"><span class="keyword">import</span> numpy as np</span><br><span class="line"><span class="meta">#numpy输出结果没有省略号</span></span><br><span class="line">np.set_printoptions(threshold=np.nan)</span><br><span class="line">from datetime <span class="keyword">import</span> date</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot as plt</span><br><span class="line"><span class="keyword">import</span> seaborn as sns</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> xgboost as xgb</span><br><span class="line">from sklearn.metrics <span class="keyword">import</span> mean_squared_error</span><br><span class="line">from sklearn.model_selection <span class="keyword">import</span> KFold, RepeatedKFold</span><br></pre></td></tr></table></figure>
+
+<br>
+读取数据集
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># 引入数据</span><br><span class="line">os.chdir(r<span class="string">"E:/shuju/happiness"</span>)</span><br><span class="line">submit =  pd.read_csv('happiness_submit.csv')</span><br><span class="line">test = pd.read_csv('happiness_test_complete.csv',encoding='gbk')</span><br><span class="line">train = pd.read_csv('happiness_train_complete.csv',encoding='gbk')</span><br></pre></td></tr></table></figure>
+
+<p>可见数据的规模如下</p>
+<p><img src="/images/1.6.png" alt><br>submit为需要提交给官方的数据集，其中happiness为模型预测的结果<br>test,train分别为测试集和训练集，train中多出的一列为happiness</p>
+<p>查看数据分布特征</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">train.describe()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/1.7.png" alt></p>
+<p>查看数据类型</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> col in train.columns:</span><br><span class="line">    print(col,train[col].dtypes)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/1.8.png" alt></p>
+<p>检查缺失值</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">def get_missing(df):</span><br><span class="line">    is_miss = df.isnull().sum().any()</span><br><span class="line">    <span class="keyword">if</span> is_miss:</span><br><span class="line">        total_miss = df.isnull().sum()</span><br><span class="line">        percent = total_miss/len(df)</span><br><span class="line">        rst= pd.concat([total_miss,percent],axis=1,keys=['total','percent'])</span><br><span class="line">        rst['dtype']=[str(df[col].dtypes)for col in df.columns]</span><br><span class="line">        print(rst[rst['total']!=0])</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        print(<span class="string">"no miss"</span>)</span><br><span class="line"></span><br><span class="line">get_missing(train)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/1.9.png" alt></p>
+<br>
+
+<p>三、特征工程<br>将train和test同时处理</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">data = pd.concat([train,test],axis=<span class="number">0</span>,ignore_index=True)</span><br></pre></td></tr></table></figure>
+
+<p>（一）缺失值处理<br>1.去掉缺失值过多的两个特征</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">data=data.drop([<span class="string">"edu_other"</span>], axis=<span class="number">1</span>)</span><br><span class="line">data=data.drop([<span class="string">"property_other"</span>], axis=<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<p>2.对二分类缺失值进行处理</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">data[<span class="string">"join_party"</span>]=data[<span class="string">"join_party"</span>].<span class="built_in">map</span>(lambda x:<span class="number">0</span> <span class="keyword">if</span> pd.isnull(x)  <span class="keyword">else</span> <span class="number">1</span>)</span><br><span class="line">data[<span class="string">"invest_other"</span>]=data[<span class="string">"invest_other"</span>].<span class="built_in">map</span>(lambda x:<span class="number">0</span> <span class="keyword">if</span> pd.isnull(x)  <span class="keyword">else</span> <span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<p>3.用众数对多分类缺失值进行填补</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">data[<span class="string">"edu_status"</span>]=data[<span class="string">"edu_status"</span>].fillna(data[<span class="string">"edu_status"</span>].mode()[<span class="number">0</span>])</span><br><span class="line">data[<span class="string">"hukou_loc"</span>]=data[<span class="string">"hukou_loc"</span>].fillna(data[<span class="string">"hukou_loc"</span>].mode()[<span class="number">0</span>])</span><br><span class="line">data[<span class="string">"social_neighbor"</span>]=data[<span class="string">"social_neighbor"</span>].fillna(data[<span class="string">"social_neighbor"</span>].mode()[<span class="number">0</span>])</span><br><span class="line">data[<span class="string">"social_friend"</span>]=data[<span class="string">"social_friend"</span>].fillna(data[<span class="string">"social_friend"</span>].mode()[<span class="number">0</span>])</span><br><span class="line">data[<span class="string">"work_status"</span>]=data[<span class="string">"work_status"</span>].fillna(data[<span class="string">"work_status"</span>].mode()[<span class="number">0</span>])</span><br><span class="line">data[<span class="string">"work_type"</span>]=data[<span class="string">"work_type"</span>].fillna(data[<span class="string">"work_type"</span>].mode()[<span class="number">0</span>])</span><br><span class="line">data[<span class="string">"work_manage"</span>]=data[<span class="string">"work_manage"</span>].fillna(data[<span class="string">"work_manage"</span>].mode()[<span class="number">0</span>])</span><br><span class="line">data[<span class="string">"minor_child"</span>]=data[<span class="string">"minor_child"</span>].fillna(data[<span class="string">"minor_child"</span>].mode()[<span class="number">0</span>])</span><br><span class="line">data[<span class="string">"s_edu"</span>]=data[<span class="string">"s_edu"</span>].fillna(data[<span class="string">"s_edu"</span>].mode()[<span class="number">0</span>])</span><br><span class="line">data[<span class="string">"s_political"</span>]=data[<span class="string">"s_political"</span>].fillna(data[<span class="string">"s_political"</span>].mode()[<span class="number">0</span>])</span><br><span class="line">data[<span class="string">"s_hukou"</span>]=data[<span class="string">"s_hukou"</span>].fillna(data[<span class="string">"s_hukou"</span>].mode()[<span class="number">0</span>])</span><br><span class="line">data[<span class="string">"s_work_exper"</span>]=data[<span class="string">"s_work_exper"</span>].fillna(data[<span class="string">"s_work_exper"</span>].mode()[<span class="number">0</span>])</span><br><span class="line">data[<span class="string">"s_work_status"</span>]=data[<span class="string">"s_work_status"</span>].fillna(data[<span class="string">"s_work_status"</span>].mode()[<span class="number">0</span>])</span><br><span class="line">data.loc[data['s_work_status']&lt;=0,'s_work_status'] = data["s_work_status"].mode()[0]</span><br></pre></td></tr></table></figure>
+
+<p>4.用均值对连续变量进行填补</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">data[<span class="string">"work_yr"</span>]=data[<span class="string">"work_yr"</span>].fillna(data[<span class="string">"work_status"</span>].mean())</span><br><span class="line">data[<span class="string">"family_income"</span>]=data[<span class="string">"family_income"</span>].fillna(data[<span class="string">"family_income"</span>].mean())</span><br><span class="line">data.loc[data['family_income']&lt;=0,'family_income'] = data["family_income"].mean()</span><br></pre></td></tr></table></figure>
+
+<br>
+
+<p>（二）异常值处理</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">#将<span class="number">-8</span>换成<span class="number">3</span>（说不上幸福不幸福）</span><br><span class="line">data[<span class="string">"happiness"</span>] = data[<span class="string">"happiness"</span>].<span class="built_in">map</span>(lambda x:<span class="number">3</span> <span class="keyword">if</span> x&lt;<span class="number">0</span> <span class="keyword">else</span> x)</span><br><span class="line">data['hukou_loc'] = data['hukou_loc'].fillna(4)</span><br><span class="line">#获得最高学历的年份</span><br><span class="line">data[<span class="string">"edu_yr"</span>]=data[<span class="string">"edu_yr"</span>].fillna(<span class="number">-2</span>)</span><br><span class="line">data[<span class="string">"marital_1st"</span>]=data[<span class="string">"marital_1st"</span>].fillna(<span class="number">0</span>)</span><br><span class="line">data.loc[data['marital_1st']&lt;=0,'marital_1st'] = 0</span><br><span class="line">data[<span class="string">"s_birth"</span>]=data[<span class="string">"s_birth"</span>].fillna(data[<span class="string">"birth"</span>])</span><br><span class="line">#请问您与目前的配偶是哪一年结婚的</span><br><span class="line">data[<span class="string">"marital_now"</span>]=data[<span class="string">"marital_now"</span>].fillna(<span class="number">0</span>)</span><br><span class="line">data.loc[data['marital_now']&lt;=0,'marital_now'] = 0</span><br><span class="line">data[<span class="string">"s_income"</span>]=data[<span class="string">"s_income"</span>].fillna(<span class="number">0</span>)</span><br><span class="line">data.loc[data['s_income']&lt;=0,'s_income'] = 0</span><br><span class="line">data[<span class="string">"s_work_type"</span>]=data[<span class="string">"s_work_type"</span>].fillna(<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+<p>（三）构建新特征<br>根据传统社会学观点，人的幸福感受到六大因素的影响。分别为家庭关系<br>、收入、社会支持关系、身体健康、社会地位、自尊水平<br>本文将依此来建立新的特征<br> 1.家庭关系相关特征</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">#第一次结婚年龄</span><br><span class="line">data['marital_1stbir'] = data['marital_1st'] - data['birth']</span><br><span class="line">#最近结婚年龄</span><br><span class="line">data['marital_nowtbir'] = data['marital_now'] - data['birth'] </span><br><span class="line">#是否再婚</span><br><span class="line">data['mar'] = data['marital_nowtbir'] - data['marital_1stbir']</span><br><span class="line">#配偶年龄</span><br><span class="line">data['marital_sbir'] = data['marital_now']-data['s_birth']</span><br><span class="line">#配偶年龄差</span><br><span class="line">data['age_'] = data['marital_nowtbir'] - data['marital_sbir']</span><br></pre></td></tr></table></figure>
+
+<p> 2.收入相关特征<br> <figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">#收入比</span><br><span class="line">data['income/s_income'] = data['income']/(data['s_income']+1)</span><br><span class="line">data['income+s_income'] = data['income']+(data['s_income']+1)</span><br><span class="line">data['income/family_income'] = data['income']/(data['family_income']+1)</span><br><span class="line">data['all_income/family_income'] = (data['income']+data['s_income'])/(data['family_income']+1)</span><br><span class="line">data['income/inc_exp'] = data['income']/(data['inc_exp']+1)</span><br><span class="line">data['family_income/m'] = data['family_income']/(data['family_m']+0.01)</span><br><span class="line">#收入/面积比</span><br><span class="line">data['income/floor_area'] = data['income']/(data['floor_area']+0.01)</span><br><span class="line">data['all_income/floor_area'] = (data['income']+data['s_income'])/(data['floor_area']+0.01)</span><br><span class="line">data['family_income/floor_area'] = data['family_income']/(data['floor_area']+0.01)</span><br><span class="line">data['income/m'] = data['floor_area']/(data['family_m']+0.01)</span><br></pre></td></tr></table></figure></p>
+<p> 3.社会支持关系相关特征<br> <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"> </span><br></pre></td></tr></table></figure></p>
+<p> 4.社会地位相关特征<br> <figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="meta">#province mean</span></span><br><span class="line">data['province_income_mean'] = data.groupby(['province'])['income'].transform('mean').values</span><br><span class="line">data['province_family_income_mean'] = data.groupby(['province'])['family_income'].transform('mean').values</span><br><span class="line">data['province_equity_mean'] = data.groupby(['province'])['equity'].transform('mean').values</span><br><span class="line">data['province_depression_mean'] = data.groupby(['province'])['depression'].transform('mean').values</span><br><span class="line">data['province_floor_area_mean'] = data.groupby(['province'])['floor_area'].transform('mean').values</span><br><span class="line"></span><br><span class="line"><span class="meta">#city   mean</span></span><br><span class="line">data['city_income_mean'] = data.groupby(['city'])['income'].transform('mean').values</span><br><span class="line">data['city_family_income_mean'] = data.groupby(['city'])['family_income'].transform('mean').values</span><br><span class="line">data['city_equity_mean'] = data.groupby(['city'])['equity'].transform('mean').values</span><br><span class="line">data['city_depression_mean'] = data.groupby(['city'])['depression'].transform('mean').values</span><br><span class="line">data['city_floor_area_mean'] = data.groupby(['city'])['floor_area'].transform('mean').values</span><br><span class="line"></span><br><span class="line"><span class="meta">#county  mean</span></span><br><span class="line">data['county_income_mean'] = data.groupby(['county'])['income'].transform('mean').values</span><br><span class="line">data['county_family_income_mean'] = data.groupby(['county'])['family_income'].transform('mean').values</span><br><span class="line">data['county_equity_mean'] = data.groupby(['county'])['equity'].transform('mean').values</span><br><span class="line">data['county_depression_mean'] = data.groupby(['county'])['depression'].transform('mean').values</span><br><span class="line">data['county_floor_area_mean'] = data.groupby(['county'])['floor_area'].transform('mean').values</span><br><span class="line"><span class="meta">#ratio 相比同个城市</span></span><br><span class="line">data['income/county'] = data['income']/(data['county_income_mean']+1)                                 </span><br><span class="line">data['family_income/county'] = data['family_income']/(data['county_family_income_mean']+1)   </span><br><span class="line">data['equity/county'] = data['equity']/(data['county_equity_mean']+1)       </span><br><span class="line">data['depression/county'] = data['depression']/(data['county_depression_mean']+1)                            </span><br><span class="line">data['floor_area/county'] = data['floor_area']/(data['county_floor_area_mean']+1)   </span><br><span class="line"><span class="meta">#class   mean</span></span><br><span class="line">data['city_class_income_mean'] = data.groupby(['class'])['income'].transform('mean').values</span><br><span class="line">data['city_class_family_income_mean'] = data.groupby(['class'])['family_income'].transform('mean').values</span><br><span class="line">data['city_class_equity_mean'] = data.groupby(['class'])['equity'].transform('mean').values</span><br><span class="line">data['city_class_depression_mean'] = data.groupby(['class'])['depression'].transform('mean').values</span><br><span class="line">data['city_class_floor_area_mean'] = data.groupby(['class'])['floor_area'].transform('mean').values</span><br></pre></td></tr></table></figure></p>
+<p>5.自尊水平</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#class</span></span><br><span class="line">data['class_10_diff'] = (data['class_10_after'] - data['class_10_before'])</span><br><span class="line">data['class_diff'] = data['class'] - data['class_10_before']</span><br><span class="line">data['class_14_diff'] = data['class'] - data['class_14']</span><br></pre></td></tr></table></figure>
+
+<p>6.其他</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br></pre></td><td class="code"><pre><span class="line">def getres1(row):</span><br><span class="line">    <span class="keyword">return</span> len([x <span class="keyword">for</span> x in row.values <span class="keyword">if</span> type(x)==<span class="keyword">int</span> <span class="keyword">and</span> x&lt;<span class="number">0</span>])</span><br><span class="line"></span><br><span class="line">def getres2(row):</span><br><span class="line">    <span class="keyword">return</span> len([x <span class="keyword">for</span> x in row.values <span class="keyword">if</span> type(x)==<span class="keyword">int</span> <span class="keyword">and</span> x==<span class="number">-8</span>])</span><br><span class="line"></span><br><span class="line">def getres3(row):</span><br><span class="line">    <span class="keyword">return</span> len([x <span class="keyword">for</span> x in row.values <span class="keyword">if</span> type(x)==<span class="keyword">int</span> <span class="keyword">and</span> x==<span class="number">-1</span>])</span><br><span class="line"></span><br><span class="line">def getres4(row):</span><br><span class="line">    <span class="keyword">return</span> len([x <span class="keyword">for</span> x in row.values <span class="keyword">if</span> type(x)==<span class="keyword">int</span> <span class="keyword">and</span> x==<span class="number">-2</span>])</span><br><span class="line"></span><br><span class="line">def getres5(row):</span><br><span class="line">    <span class="keyword">return</span> len([x <span class="keyword">for</span> x in row.values <span class="keyword">if</span> type(x)==<span class="keyword">int</span> <span class="keyword">and</span> x==<span class="number">-3</span>])</span><br><span class="line"></span><br><span class="line">#调查问卷有效程度</span><br><span class="line">data['neg1'] = data[data.columns].apply(lambda row:getres1(row),axis=1)</span><br><span class="line">data.loc[data['neg1']&gt;20,'neg1'] = 20  #平滑处理</span><br><span class="line">data['neg2'] = data[data.columns].apply(lambda row:getres2(row),axis=1)</span><br><span class="line">data['neg3'] = data[data.columns].apply(lambda row:getres3(row),axis=1)</span><br><span class="line">data['neg4'] = data[data.columns].apply(lambda row:getres4(row),axis=1)</span><br><span class="line">data['neg5'] = data[data.columns].apply(lambda row:getres5(row),axis=1)</span><br><span class="line">#对体重修正</span><br><span class="line">data.loc[(data['weight_jin']&lt;=80)&amp;(data['height_cm']&gt;=160),'weight_jin']= data['weight_jin']*2</span><br><span class="line">data.loc[data['weight_jin']&lt;=60,'weight_jin']= data['weight_jin']*2</span><br><span class="line">data.loc[data['family_income']&lt;=0,'family_income']=0</span><br><span class="line">data.loc[data['inc_exp']&lt;=0,'inc_exp']= 0</span><br><span class="line"></span><br><span class="line">#处理时间特征</span><br><span class="line">data['survey_time'] = pd.to_datetime(data['survey_time'],format='%Y-%m-%d %H:%M:%S')</span><br><span class="line">data[<span class="string">"weekday"</span>]=data[<span class="string">"survey_time"</span>].dt.weekday</span><br><span class="line">data[<span class="string">"year"</span>]=data[<span class="string">"survey_time"</span>].dt.year</span><br><span class="line">data[<span class="string">"quarter"</span>]=data[<span class="string">"survey_time"</span>].dt.quarter</span><br><span class="line">data[<span class="string">"hour"</span>]=data[<span class="string">"survey_time"</span>].dt.hour</span><br><span class="line">data[<span class="string">"month"</span>]=data[<span class="string">"survey_time"</span>].dt.month</span><br><span class="line">#把一天的时间分段</span><br><span class="line">def hour_cut(x):</span><br><span class="line">    <span class="keyword">if</span> <span class="number">0</span>&lt;=x&lt;<span class="number">6</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">    elif  <span class="number">6</span>&lt;=x&lt;<span class="number">8</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">    elif  <span class="number">8</span>&lt;=x&lt;<span class="number">12</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">2</span></span><br><span class="line">    elif  <span class="number">12</span>&lt;=x&lt;<span class="number">14</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">3</span></span><br><span class="line">    elif  <span class="number">14</span>&lt;=x&lt;<span class="number">18</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">4</span></span><br><span class="line">    elif  <span class="number">18</span>&lt;=x&lt;<span class="number">21</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">5</span></span><br><span class="line">    elif  <span class="number">21</span>&lt;=x&lt;<span class="number">24</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">6</span></span><br><span class="line">data[<span class="string">"hour_cut"</span>]=data[<span class="string">"hour"</span>].<span class="built_in">map</span>(hour_cut)</span><br><span class="line">#做问卷时候的年龄</span><br><span class="line">data[<span class="string">"survey_age"</span>]=data[<span class="string">"year"</span>]-data[<span class="string">"birth"</span>]</span><br><span class="line">#出生的年代</span><br><span class="line">def birth_split(x):</span><br><span class="line">    <span class="keyword">if</span> <span class="number">1920</span>&lt;=x&lt;=<span class="number">1930</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">    elif  <span class="number">1930</span>&lt;x&lt;=<span class="number">1940</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">    elif  <span class="number">1940</span>&lt;x&lt;=<span class="number">1950</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">2</span></span><br><span class="line">    elif  <span class="number">1950</span>&lt;x&lt;=<span class="number">1960</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">3</span></span><br><span class="line">    elif  <span class="number">1960</span>&lt;x&lt;=<span class="number">1970</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">4</span></span><br><span class="line">    elif  <span class="number">1970</span>&lt;x&lt;=<span class="number">1980</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">5</span></span><br><span class="line">    elif  <span class="number">1980</span>&lt;x&lt;=<span class="number">1990</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">6</span></span><br><span class="line">    elif  <span class="number">1990</span>&lt;x&lt;=<span class="number">2000</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">7</span></span><br><span class="line">data[<span class="string">"birth_s"</span>]=data[<span class="string">"birth"</span>].<span class="built_in">map</span>(birth_split)</span><br></pre></td></tr></table></figure>
+
+<p>（四）后处理</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">X_train_ = data[:train.shape[<span class="number">0</span>]]</span><br><span class="line">X_test_  = data[train.shape[<span class="number">0</span>]:]</span><br><span class="line">get_missing(X_train_)</span><br><span class="line">Y_train_= X_train_[<span class="string">"happiness"</span>]</span><br></pre></td></tr></table></figure>
+
+<p>四、可视化分析<br>1.整体幸福感</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># 查看各个类别的分布情况，有很明显的类别不均衡的问题</span><br><span class="line">f,ax=plt.subplots(<span class="number">1</span>,<span class="number">2</span>,figsize=(<span class="number">10</span>,<span class="number">5</span>))</span><br><span class="line">Y_train_.value_counts().plot.pie(autopct='%1.1f%%',ax=ax[0],shadow=True)</span><br><span class="line">ax[0].set_title('happiness')</span><br><span class="line">ax[0].set_ylabel('')</span><br><span class="line">Y_train_.value_counts().plot.bar(ax=ax[<span class="number">1</span>])</span><br><span class="line">ax[1].set_title('happiness')</span><br><span class="line">plt.savefig('hist_happiness.png')</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/hist_happiness.png" alt><br>注：happiness：1 = 非常不幸福; 2 = 比较不幸福; 3 = 说不上幸福不幸福; 4 = 比较幸福; 5 = 非常幸福;</p>
+<p>由图可知，有少部分人群处于平均水平之下，没有明显的幸福感甚至是缺乏幸福感；77.6%的被访谈居民认为自己比较幸福，说明我国的居民幸福感整体还是比较高的；认为自己非常幸福的人只占到了17.6%。我国距离“人民幸福”的指标仍有提高空间。</p>
+<p>2.按性别区分<br>按性别的幸福指数比较，1表示男性，2表示女性</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"># 探究性别和幸福感的分布</span><br><span class="line">sns.countplot('gender',hue='happiness',data=X_train_ )</span><br><span class="line">ax[1].set_title('Sex:happiness')</span><br><span class="line">plt.savefig('gender_happiness.png')</span><br><span class="line"></span><br><span class="line">plt.figure(figsize=(<span class="number">10</span>, <span class="number">5</span>))</span><br><span class="line">plt.subplot(<span class="number">1</span>, <span class="number">2</span>, <span class="number">1</span>)</span><br><span class="line">X_train_['happiness'][X_train_['gender'] == 1].value_counts().plot(kind='pie', autopct='%1.1f%%')</span><br><span class="line">plt.subplot(<span class="number">1</span>, <span class="number">2</span>, <span class="number">2</span>)</span><br><span class="line">X_train_['happiness'][X_train_['gender'] == 2].value_counts().plot(kind='pie', autopct='%1.1f%%')</span><br><span class="line">plt.title('different happiness level percent by gender')</span><br><span class="line">plt.savefig('gender_pie.png')</span><br></pre></td></tr></table></figure>
+
+<p>不同性别下幸福指数数量图：<br><img src="/images/gender_happiness.png" alt><br>不同性别下幸福指数比例图：<br><img src="/images/gender_pie.png" alt><br>从两性方面可以看出，居民幸福感与性别没有明显关系。但是女性选择“3，不知道自己幸不幸福”的比例少于男性，说明女性的对于自己的幸福感认知高于男性，更加关注自己的心理处境，而男性则较少思考自己是否幸福。</p>
+<p>3.按城农区分<br>样本类型的幸福指数比较，1表示城市，2表示农村</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">#城市农村区分</span><br><span class="line">sns.countplot('survey_type',hue='happiness',data=X_train_ )</span><br><span class="line">ax[1].set_title('coutry_city:happiness')</span><br><span class="line">plt.savefig('coutry_city_happiness.png')</span><br><span class="line"></span><br><span class="line">plt.figure(figsize=(<span class="number">10</span>, <span class="number">5</span>))</span><br><span class="line">plt.subplot(<span class="number">1</span>, <span class="number">2</span>, <span class="number">1</span>)</span><br><span class="line">X_train_['happiness'][X_train_['survey_type'] == 1].value_counts().plot(kind='pie', autopct='%1.1f%%')</span><br><span class="line">plt.subplot(<span class="number">1</span>, <span class="number">2</span>, <span class="number">2</span>)</span><br><span class="line">X_train_['happiness'][X_train_['survey_type'] == 2].value_counts().plot(kind='pie', autopct='%1.1f%%')</span><br><span class="line">plt.title('different happiness level percent in city  or country')</span><br><span class="line">plt.savefig('country_or_city_pie.png')</span><br></pre></td></tr></table></figure>
+
+<p>城市农村幸福指数数量图：<br><img src="/images/coutry_city_happiness.png" alt><br>城市农村幸福指数比例图：<br><img src="/images/country_or_city_pie.png" alt><br>由上图可知，城市居民相比于农村居民，明显有着更高的幸福感。但是居民对幸福感的认知占比大致相当，说明城市农村是一个弱相关因素，能起到一定的影响，但影响不大。</p>
+<p>4.按年龄区分</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">df=X_train_['survey_age']</span><br><span class="line">df.plot.hist(bins=<span class="number">8</span>)</span><br><span class="line">plt.savefig('age.png')</span><br><span class="line"></span><br><span class="line">sns.countplot('age_s',hue='happiness',data=X_train_ )</span><br><span class="line">ax[1].set_title('age:happiness')</span><br><span class="line">plt.savefig('age_happiness.png')</span><br><span class="line"></span><br><span class="line">plt.figure(figsize=(<span class="number">10</span>, <span class="number">5</span>))</span><br><span class="line">plt.subplot(<span class="number">2</span>, <span class="number">4</span>, <span class="number">1</span>)</span><br><span class="line">X_train_['happiness'][X_train_['age_s'] == 0].value_counts().plot(kind='pie', autopct='%1.1f%%')</span><br><span class="line">plt.subplot(<span class="number">2</span>, <span class="number">4</span>, <span class="number">2</span>)</span><br><span class="line">X_train_['happiness'][X_train_['age_s'] == 1].value_counts().plot(kind='pie', autopct='%1.1f%%')</span><br><span class="line">plt.subplot(<span class="number">2</span>, <span class="number">4</span>, <span class="number">3</span>)</span><br><span class="line">X_train_['happiness'][X_train_['age_s'] == 2].value_counts().plot(kind='pie', autopct='%1.1f%%')</span><br><span class="line">plt.subplot(<span class="number">2</span>, <span class="number">4</span>, <span class="number">4</span>)</span><br><span class="line">X_train_['happiness'][X_train_['age_s'] == 3].value_counts().plot(kind='pie', autopct='%1.1f%%')</span><br><span class="line">plt.subplot(<span class="number">2</span>, <span class="number">4</span>, <span class="number">5</span>)</span><br><span class="line">X_train_['happiness'][X_train_['age_s'] == 4].value_counts().plot(kind='pie', autopct='%1.1f%%')</span><br><span class="line">plt.subplot(<span class="number">2</span>, <span class="number">4</span>, <span class="number">6</span>)</span><br><span class="line">X_train_['happiness'][X_train_['age_s'] == 5].value_counts().plot(kind='pie', autopct='%1.1f%%')</span><br><span class="line">plt.subplot(<span class="number">2</span>, <span class="number">4</span>, <span class="number">7</span>)</span><br><span class="line">X_train_['happiness'][X_train_['age_s'] == 6].value_counts().plot(kind='pie', autopct='%1.1f%%')</span><br><span class="line">plt.subplot(<span class="number">2</span>, <span class="number">4</span>, <span class="number">8</span>)</span><br><span class="line">X_train_['happiness'][X_train_['age_s'] == 7].value_counts().plot(kind='pie', autopct='%1.1f%%')</span><br><span class="line">plt.title('different happiness level percent by age')</span><br><span class="line">plt.savefig('age_pie.png')</span><br></pre></td></tr></table></figure>
+
+<p>接受问卷调查的居民年龄分布<br><img src="/images/age.png" alt><br>不同年龄幸福指数数量图：<br><img src="/images/age_happiness.png" alt><br>不同年龄幸福指数比例图：<br><img src="/images/age_pie.png" alt><br>由图可知，小于20岁的青少年和70岁以上的老年人都有更大的幸福感，这与常识一致。青少年还未进入社会没有感受到社会生存的压力，处于一种天真烂漫的年纪，理应有更大的幸福感；而老年人在退休之后在家享受天伦之乐，没有多余的顾虑，所以幸福感增加也理所应当；中年人受到家庭压力、工作压力，经济负担等一些列因素的影响，感到更多的不幸福。</p>
+
+      </div>
+    </div>
+  </div>
+</div>
+<div class="lx-navigation">
+	<div class="lx-cover prev lx-cover-sm" style="background-image: url(/images/footer_1.jpg)">
+		<div class="overlay"></div>
+		<a class="copy" href="#">
+			<div class="display-t">
+				<div class="display-tc">
+					<div>
+						<span>Next</span>
+						<h3>没有更新的文章</h3>
+					</div>
+				</div>
+			</div>
+		</a>
+	</div>
+        <div class="lx-cover next lx-cover-sm" style="background-image: url(/images/footer_2.jpg)">
+		<div class="overlay"></div>
+		<a class="copy" href="/yaosheng.html">
+			<div class="display-t">
+				<div class="display-tc">
+					<div>
+						<span>Prev</span>
+						<h3>yaosheng</h3>
+					</div>
+				</div>
+			</div>
+		</a>
+	</div>
+</div>
+</div>
+<div class="comment"><div id="comments"></div></div>
+<footer>
+  <div>
+  Copyright &copy; 2019.<a href="/">for data analysis</a><br>Powered by <a href="https://hexo.io" target="_blank">Hexo</a> | Theme <a href="https://lx.blleng.cn" target="_blank">Lx</a><br>
+  </div>
+</footer>
+</div>
+<a href="javascript:;" class="popup-trigger"><i class="menu-item-icon fa fa-search fa-fw"></i></a>
+<div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="Search..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+<button class="menu-trigger"></button>
+<div class="menu">
+  <div class="menu-head">
+    <span class="layer">
+      <div class="col">
+        <div class="row for-pic">
+          <div class="profile-pic">
+            <a href="/"><img src="\images\1.jpg" alt="送温暖的蝎子莱莱的blog"></a>
+          </div>
+        </div>
+        <div class="row for-name">
+          <p>送温暖的蝎子莱莱的blog</p>
+          <span class="tagline">Hello, World!</span>
+        </div>
+      </div>
+    </span>
+  </div>
+  <nav class="menu-container">
+  <ul class="menu-items">
+    <li><span class="item-icon"><i class="fa fa-home fa-fw"></i></span><a href="/">首页</a></li>
+    <li><span class="item-icon"><i class="fa fa-archive fa-fw"></i></span><a href="/archives/">归档</a></li>
+    <li class="has-sub"><span class="item-icon"><i class="fa fa-bookmark fa-fw"></i></span>
+    <span class="dropdown-heading">页面</span><ul>
+      <li><a href="/guestbook">留言</a></li><li><a href="/about">关于</a></li></ul>
+    </li>
+    <li class="has-sub"><span class="item-icon"><i class="fa fa-link fa-fw"></i></span>
+    <span class="dropdown-heading">友链</span><ul>
+      <li> <a href="https://lx.blleng.cn" target="_blank">Theme-Lx</a></li></ul>
+    </li>
+  </ul>
+  </nav>
+</div>
+
+<div class="gototop js-top">
+  <a href="#" class="js-gotop"><i class="fa fa-arrow-up"></i></a>
+</div>
+<script src="/js/jquery.easing.min.js"></script>
+<script src="/js/jquery.waypoints.min.js"></script>
+<script src="/js/jquery.stellar.min.js"></script>
+<script src="/js/main.js"></script>
+<script src="/js/local.search.js"></script>
+
+
+</body>
+</html>
