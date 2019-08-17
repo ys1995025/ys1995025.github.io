@@ -174,7 +174,26 @@
 <script src="/js/jquery.stellar.min.js"></script>
 <script src="/js/main.js"></script>
 <script src="/js/local.search.js"></script>
-
+<script src="//unpkg.com/valine"></script>
+<script>
+  var GUEST = ['nick', 'mail', 'link'];
+  var guest = 'nick,mail,link';
+  guest = guest.split(',').filter(function(item) {
+    return GUEST.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#comments',
+    verify: false,
+    notify: false,
+    appId: 'NkH9G8FINf0QTMHyMEPL6zJy-MdYXbMMI',
+    appKey: 'qmW4jwAr8S6Hty7mCdw7YswY',
+    placeholder: '此处留言',
+    avatar: 'identicon',
+    meta: guest,
+    pageSize: '10' || 10,
+    lang: 'zh-cn' || 'zh-cn'
+  });
+</script>
 
 </body>
 </html>
