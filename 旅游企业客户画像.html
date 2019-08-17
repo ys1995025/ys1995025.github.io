@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>旅游企业客户画像 | for data analysis</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="author" content="送温暖的蝎子莱莱的blog">
+  <meta name="keywords" content="excel,sql,python">
+  <meta name="description" content="数据分析学习记录">
+  <script id="hexo-configurations">
+  var CONFIG = {
+    root: '/',
+    theme: 'hexo-theme-lx-master',
+    version: '1.4.5',
+    localsearch:{
+      "enable": true,
+      "trigger": "auto",
+      "top_n_per_article": 1,
+      "unescape": false,
+      "preload": false
+      },
+    path: 'search.xml'
+  };
+</script>
+
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/main.css">
+  <script src="/js/jquery.min.js"></script>
+  <script src="/js/jquery.jside.menu.js"></script>
+	<script>
+	$(document).ready(function(){
+	$(".menu-container").jSideMenu({
+	    jSidePosition: "position-right",
+	    jSideSticky: true,
+	    jSideSkin: "endless-river",
+	     });
+	}); 
+	</script>
+  
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat:300|Noto+Serif+SC&amp;display=swap">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4/css/font-awesome.min.css">
+</head>
+<body>
+<div class="single">
+<div id="page">
+<div id="lx-aside" style="background-image: url(/images/page-cover.jpg)" data-stellar-background-ratio="0.5">
+  <div class="overlay">
+  <div class="page-title">
+    <div class="avatar"><a href="/"><img src="\images\1.jpg"></a></div>
+    <span>2019-08-17</span>
+    <h2>旅游企业客户画像</h2>
+    <div class="tags"><i class="fa fa-tag"></i><a class="tag-link" href="/tags/python、PCA、factor-analysis-、K-means-clustering、decision-tree/">python、PCA、factor analysis 、K-means clustering、decision tree</a></div>
+    </div>
+</div>
+</div>
+<div id="lx-main-content">
+  <div class="lx-post">
+    <div class="lx-entry padding">
+      <div>
+        <p>项目背景<br>一家旅游公式对公司近8年历史消费客户做一个分析，了解客户特征，从而针对不同客户的特征做出相对应的营销策略，最大化投入产出比。通过识别高价值、高潜力的客户，实行差异化的客户管理策略，优化客户体验。为了实现这一目标，铜鼓哦客户分群技术，将具有相似特性的客户聚到相同类中，为每个不同特点的客户群体提供有针对性的、个性化的营销和管理活动。</p>
+<br>
+
+<p>本文将按照以下步骤进行数据分析：<br>    1.数据读取<br>    2.数据预处理<br>    3.因子分析<br>    4.建立聚类模型<br>    5.通过决策树进行分群后的探查<br>    6.结果说明</p>
+<br>
+
+<p>一、数据读取<br>先来查看数据特征<br>该客户数据主要包括客户系统中存储的客户历史消费记录，以及个人基本信息、家庭经济情况、兴趣爱好等。<br>|字段|含义|类型|<br>|interested_travel |旅行偏好|二分类|<br>|computer_owner |是否有家用电脑|二分类|<br>|age |估计的年龄|连续|<br>|home_value |房产价格|连续|<br>|loan_ratio|贷款比率|连续|<br>|risk_score |风险分数|连续|<br>|marital |婚姻状况估计|连续|<br>|interested_sport |运动偏好|连续|<br>|HH_grandparent|户主祖父母是否健在估计|连续|<br>|HH_dieting |户主节食偏好|连续|<br>|HH_head_age|户主年龄|连续|<br>|auto_member |驾驶俱乐部估计|连续|<br>|interested_golf |高尔夫偏好|二分类|<br>|interested_gambling |博彩偏好|二分类|<br>|HH_has_children |户主是否有孩子|二分类|<br>|HH_adults_num |家庭成年人数量|连续|<br>|interested_reading |阅读偏好|有序分类|</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pandas as pd</span><br><span class="line"><span class="keyword">import</span> numpy as np</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot as plt</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line">os.chdir(r'E:\shuju')</span><br><span class="line">travel = pd.read_csv('data_travel.csv',skipinitialspace=True)</span><br><span class="line">travel.head()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/3.1.jpg" alt></p>
+<br>
+
+<p>二、数据预处理<br>通过对数据的观察，可以得出如下结论：<br>    ①.数据中变量较多，如果全部放入模型会造成模型解释困难。<br>    一方面，对有相关性的变量进行降维，减少变量数目<br>    另一方面，通过业务特征，预先将变量分别家庭情况和用户爱好情况，然后对两组变量分别聚类。<br>    ②.数据中包括连续变量、有序分类变量和二分类变量。<br>    由于k-means只能对连续型变量进行聚类，所以要数据预处理。<br>    对于有序分类变量：如果分类水平较多——按连续变量处理；<br>                 如果分类水平较少——使用哑变量编码进入模型。<br>    对于二分类变量：本数据中二分类变量都集中在用户爱好方面，可以将其汇总得到连续型的“总体爱好“变量。</p>
+<p>1.填补缺失值</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">#检查缺失值</span><br><span class="line">def get_missing(df):</span><br><span class="line">    is_miss = df.isnull().sum().any()</span><br><span class="line">    <span class="keyword">if</span> is_miss:</span><br><span class="line">        total_miss = df.isnull().sum()</span><br><span class="line">        percent = total_miss/len(df)</span><br><span class="line">        rst= pd.concat([total_miss,percent],axis=1,keys=['total','percent'])</span><br><span class="line">        rst['dtype']=[str(df[col].dtypes)for col in df.columns]</span><br><span class="line">        print(rst[rst['total']!=0])</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        print(<span class="string">"no miss"</span>)</span><br><span class="line">get_missing(travel)</span><br><span class="line">#有缺失情况的变量皆为分类变量，且缺失比例并不高，因此用众数进行填补</span><br><span class="line">fill_cols = ['interested_travel', 'computer_owner', 'HH_adults_num']</span><br><span class="line">fill_values = &#123;col: travel[col].mode()[<span class="number">0</span>] <span class="keyword">for</span> col in fill_cols&#125;</span><br><span class="line">travel = travel.fillna(fill_values)</span><br></pre></td></tr></table></figure>
+
+<p>2.修正错误值<br>①HH_has_children的分类水平以字符形式表示，需要转换为整型，同时其中的缺失值应当表示没有小孩，因此替换为0；<br>②阅读爱好interested_reading中包含错误值“.”，将其以0进行替换，代表该用户对阅读没有兴趣。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">travel['interested_reading'].value_counts(dropna=False)</span><br><span class="line">travel['HH_has_children'] = travel['HH_has_children'].replace(&#123;'N':0, 'Y':1, np.NaN:0&#125;)</span><br><span class="line">travel['interested_reading'] = travel['interested_reading'].replace(&#123;'.':'0'&#125;).astype('int')</span><br></pre></td></tr></table></figure>
+
+<p>3.对离散型变量进行处理<br>对于离散型变量，首先使用卡方检验判断其相关性</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">_cols = ['interested_travel','computer_owner','marital','interested_golf','interested_gambling','HH_has_children','interested_reading']</span><br><span class="line">sample = travel[_cols].sample(<span class="number">3000</span>,random_state=<span class="number">12345</span>)</span><br><span class="line">#卡方检验</span><br><span class="line">from itertools <span class="keyword">import</span> combinations </span><br><span class="line">from scipy <span class="keyword">import</span> stats</span><br><span class="line"><span class="keyword">for</span> colA,colB in combinations(_cols,<span class="number">2</span>):</span><br><span class="line">    crosstab = pd.crosstab(sample[colA],sample[colB])</span><br><span class="line">    pval = stats.chi2_contingency(crosstab)[<span class="number">1</span>]</span><br><span class="line">    <span class="keyword">if</span> pval &gt; <span class="number">0.05</span>:</span><br><span class="line">        print('p-value = %0.3f between"%s"and"%s"'%(pval,colA,colB))</span><br></pre></td></tr></table></figure>
+
+<p>结果如下：<br><img src="/images/3.2.jpg" alt><br>可以看到，HH_has_children与interested_travel、computer、interested_golf这几个变量是不相关的，而与其余变量的相关性都比较大。<br>结合上文对业务的理解，可以将旅行、电脑、高尔夫、博彩和阅读汇总成一个“总体爱好”变量。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"># 先对interested_reading进行二值化</span><br><span class="line">from sklearn.preprocessing <span class="keyword">import</span> Binarizer</span><br><span class="line">binarizer = Binarizer(threshold=<span class="number">1.5</span>)</span><br><span class="line">travel['interested_reading'] = binarizer.fit_transform(</span><br><span class="line">    travel[['interested_reading']])</span><br><span class="line"># 生成二分类偏好填充率</span><br><span class="line">interest =[</span><br><span class="line">    'interested_travel',</span><br><span class="line">    'computer_owner',</span><br><span class="line">    'interested_golf', </span><br><span class="line">    'interested_gambling',</span><br><span class="line">    'interested_reading'</span><br><span class="line">]</span><br><span class="line">n_ = len(interest)</span><br><span class="line"></span><br><span class="line">travel = travel.drop(interest, axis=<span class="number">1</span>).assign(interest=travel[interest].sum(axis=<span class="number">1</span>) / n_)</span><br></pre></td></tr></table></figure>
+
+<p>此时，interes变量代表了用户休闲娱乐爱好的广泛程度，可以作为连续变量使用。</p>
+<p>4.正态化、标准化<br>将变量分类</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">#连续变量</span><br><span class="line">continuous_cols = ['age', 'home_value', 'risk_score', 'interested_sport', </span><br><span class="line">                   'HH_dieting', 'auto_member', 'HH_grandparent',</span><br><span class="line">                   'HH_head_age', 'loan_ratio']</span><br><span class="line">#可能值少的连续变量，作为有序分类变量</span><br><span class="line">categorical_cols = ['marital', 'interest', 'HH_adults_num']</span><br><span class="line">#独立的分类变量</span><br><span class="line">discreate_cols = ['HH_has_children']</span><br></pre></td></tr></table></figure>
+
+<p>①.正态化<br>为了聚类后的簇大小能比较接近，对于偏态严重的连续变量应该转换其分布，另其接近正态分布，故对其进行正态性转换；</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">#查看柱形图</span><br><span class="line">travel[continuous_cols].hist(bins=<span class="number">25</span>)</span><br><span class="line">plt.show()</span><br><span class="line">#正态性转换</span><br><span class="line">from sklearn.preprocessing <span class="keyword">import</span> QuantileTransformer</span><br><span class="line">qt = QuantileTransformer(n_quantiles=100, output_distribution='normal')</span><br><span class="line">qt_data = qt.fit_transform(travel[continuous_cols])</span><br><span class="line">#查看转换后的柱形图</span><br><span class="line">pd.DataFrame(qt_data, columns=continuous_cols).hist(bins=<span class="number">25</span>)</span><br><span class="line">plt.show()</span><br></pre></td></tr></table></figure>
+
+<p>②标准化</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">from sklearn.preprocessing <span class="keyword">import</span> scale</span><br><span class="line"></span><br><span class="line">scale_data = scale(travel[categorical_cols])</span><br></pre></td></tr></table></figure>
+
+<p>③合并各类型变量<br>“HH_has_childer”不放入模型</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">data = np.hstack([qt_data, scale_data, travel[discreate_cols]])</span><br><span class="line">data = pd.DataFrame(data, columns=continuous_cols + categorical_cols + discreate_cols)</span><br></pre></td></tr></table></figure>
+
+<p>三、因子分析<br>强相关的连续变量可能会造成聚类结果过于注重某个方面的信息，因此需要进行处理。根据对业务的理解，将变量从两个大的维度进行考虑：其一位客户家庭属性（包括家庭基本情况以及财务情况）；其二为客户个人偏好情况（包括对运动、节食等的兴趣程度）。<br>客户家庭属性：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">household = ['age', 'marital', 'HH_adults_num', 'HH_head_age','HH_grandparent','home_value', 'risk_score', 'loan_ratio']</span><br><span class="line">hobby = ['HH_dieting', 'auto_member', 'interest', 'interested_sport']</span><br><span class="line"># In[n]:</span><br><span class="line">from sklearn.decomposition <span class="keyword">import</span> PCA</span><br><span class="line">pca_hh = PCA().fit(data[household])</span><br><span class="line">pca_hh.explained_variance_ratio_.cumsum()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/3.3.jpg" alt><br>可看到，家庭情况的变量，保留4个主成分就可以解释数据变异的83%，故此，在因子分析中也保留4个因子。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">from fa_kit <span class="keyword">import</span> FactorAnalysis</span><br><span class="line">from fa_kit <span class="keyword">import</span>  plotting as fa_plotting</span><br><span class="line">fa_hh = FactorAnalysis.load_data_samples(</span><br><span class="line">        data[household],</span><br><span class="line">        preproc_demean=True,</span><br><span class="line">        preproc_scale=True)</span><br><span class="line">fa_hh.extract_components()</span><br><span class="line">fa_hh.find_comps_to_retain(method='top_n',num_keep=4)</span><br><span class="line"></span><br><span class="line">fa_hh.rotate_components(method='varimax')</span><br><span class="line">fa_plotting.graph_summary(fa_hh)</span><br><span class="line"></span><br><span class="line">pd.DataFrame(fa_hh.comps['rot'].T,columns=household)</span><br><span class="line"></span><br><span class="line">data_hh = pd.DataFrame(</span><br><span class="line">        np.dot(data[household],fa_hh.comps['rot']),</span><br><span class="line">        columns=['life_circle','finance','HH_size','risk'])</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/3.4.jpg" alt><br>从因子载荷矩阵中可以看到：</p>
+<p>①第一个因子在age、HH_grandprant、HH_head_age上的权重显著较高，可以综合为“客户家庭生命周期”<br>②第二个因子在home_value、loan_ration上的权重显著较高，可以综合为“客户财务情况”<br>③第三个因子在marital、HH_adults_num上的权重显著较高，可以综合为“客户家庭人口规模”<br>④第四个因子在risk_score上的权重显著较高，可以代表“客户风险”<br>以此将四个因子命名：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">data_hh = pd.DataFrame(</span><br><span class="line">        np.dot(data[household],fa_hh.comps['rot']),</span><br><span class="line">        columns=['life_circle','finance','HH_size','risk'])</span><br></pre></td></tr></table></figure>
+
+<p>客户个人偏好：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">from sklearn.decomposition <span class="keyword">import</span> PCA</span><br><span class="line">pca_hb = PCA().fit(data[hobby])</span><br><span class="line">pca_hb.explained_variance_ratio_.cumsum()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/3.5.jpg" alt><br>可看到，个人情况的变量，保留3个主成分就可以解释数据变异的91%，故此，在因子分析中也保留3个因子。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">fa_hb = FactorAnalysis.load_data_samples(</span><br><span class="line">        data[hobby],</span><br><span class="line">        preproc_demean=True,</span><br><span class="line">        preproc_scale=True)</span><br><span class="line">fa_hb.extract_components()</span><br><span class="line">fa_hb.find_comps_to_retain(method='top_n',num_keep=3)</span><br><span class="line">fa_hb.rotate_components(method='varimax')</span><br><span class="line">pd.DataFrame(fa_hb.comps['rot'].T,columns=hobby)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/3.6.jpg" alt><br>从因子载荷矩阵中可以看到：</p>
+<p>①第一个因子在auto_member、interested_sport上的权重显著较高，可以综合为“客户运动偏好”<br>②第二个因子在HH_dieting、interested_sport上的权重显著较高，可以综合为“客户生活方式”<br>③第三个因子在interest上的权重显著较高，可以代表“客户休闲偏好”<br>以此将三个因子命名：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">data_hb = pd.DataFrame(</span><br><span class="line">        np.dot(data[hobby],fa_hb.comps['rot']),</span><br><span class="line">        columns=['sports','health','leisure'])</span><br></pre></td></tr></table></figure>
+
+<p>四、建立聚类模型<br>（一）确定k值<br>将因子分析后的特征作为因变量，通过簇内离差平方和以及轮廓系数确定最优的k值。<br>以下函数提供使用轮廓系数探查合理聚类数量的功能</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">from sklearn.cluster <span class="keyword">import</span> KMeans</span><br><span class="line">from sklearn.metrics <span class="keyword">import</span> silhouette_score</span><br><span class="line"></span><br><span class="line"><span class="function">def <span class="title">cluster_plot</span><span class="params">(data, k_range=range(<span class="number">2</span>, <span class="number">12</span>), n_init=<span class="number">5</span>, sample_size=<span class="number">2000</span>, </span></span></span><br><span class="line">                 n_jobs=-1):</span><br><span class="line">    scores = []</span><br><span class="line">    models = &#123;&#125;</span><br><span class="line">    <span class="keyword">for</span> k in k_range:</span><br><span class="line">        kmeans = KMeans(n_clusters=k, n_init=n_init, n_jobs=n_jobs)</span><br><span class="line">        kmeans.fit(data)</span><br><span class="line">        models[k]=kmeans</span><br><span class="line">        sil = silhouette_score(data, kmeans.labels_, </span><br><span class="line">                               sample_size=sample_size)</span><br><span class="line">        scores.append([k, kmeans.inertia_, sil])</span><br><span class="line"></span><br><span class="line">    scores_df = pd.DataFrame(scores, columns=['k','sum_square_dist', 'sil'])</span><br><span class="line">    plt.figure(figsize=[<span class="number">9</span>, <span class="number">2</span>])</span><br><span class="line">    plt.subplot(121, ylabel='sum_square')</span><br><span class="line">    plt.plot(scores_df.k, scores_df.sum_square_dist)</span><br><span class="line">    plt.subplot(122, ylabel='silhouette_score')</span><br><span class="line">    plt.plot(scores_df.k, scores_df.sil)</span><br><span class="line">    plt.show()</span><br><span class="line">    <span class="keyword">return</span> models</span><br></pre></td></tr></table></figure>
+
+<p>探查根据家庭情况进行聚类的K的数量</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">scale_data_hh=scale(data_hh)</span><br><span class="line">models_hh=cluster_plot(scale_data_hh)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/3.7.png" alt><br>可以看到k取值3时，轮廓系数最高，而簇内离差平方和也是在k&gt;3之后有比较明显的减缓。所以k=3是比较好的选择。</p>
+<br>
+
+<p>探查根据兴趣爱好进行聚类的K的数量</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">scale_data_hb=scale(data_hb)</span><br><span class="line">models_hb = cluster_plot(scale_data_hb)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/3.8.png" alt><br>可以看到k取值2时轮廓系数最大，所以选择k=2</p>
+<p>（二）建立聚类模型<br>选择适当K值分别对2个维度聚类，并将相应标签连接至原始数据集</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">hh_labels = pd.DataFrame(models_hh[3].labels_,columns=['hh'])</span><br><span class="line">hb_labels = pd.DataFrame(models_hb[2].labels_,columns=['hb'])</span><br><span class="line">clusters=travel.join(hh_labels).join(hb_labels)</span><br><span class="line">clusters.head()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/3.9.jpg" alt><br>可以看到列尾增加了两列，分别是对家庭属性聚类的标签，以及和客户个人偏好聚类的标签。</p>
+<br>
+
+
+<p>五、通过决策树进行分群后的探查<br>将聚类后的簇标签作为因变量，使用决策树对聚类结果进行分析。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">from sklearn.tree <span class="keyword">import</span> DecisionTreeClassifier</span><br><span class="line">clf_hh = DecisionTreeClassifier()</span><br><span class="line">clf_hb = DecisionTreeClassifier()</span><br><span class="line"></span><br><span class="line">clf_hh.fit(clusters[household],clusters['hh'])</span><br><span class="line">clf_hb.fit(clusters[hobby],clusters['hb'])</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pydotplus</span><br><span class="line">from IPython.display <span class="keyword">import</span> Image</span><br><span class="line"><span class="keyword">import</span> sklearn.tree as tree</span><br><span class="line">dot_hh = tree.export_graphviz(</span><br><span class="line">        clf_hh,</span><br><span class="line">        out_file=None,</span><br><span class="line">        feature_names=household,</span><br><span class="line">        class_names=[<span class="string">'0'</span>,<span class="string">'1'</span>,<span class="string">'2'</span>],</span><br><span class="line">        max_depth=<span class="number">2</span>,</span><br><span class="line">        filled=True)</span><br><span class="line">graph_hh = pydotplus.graph_from_dot_data(dot_hh)</span><br><span class="line">Image(graph_hh.create_png())</span><br></pre></td></tr></table></figure>
+
+<p>家庭属性聚类的结果树结构如下：<br><img src="/images/hh.png" alt><br>通过决策树可以看出：<br>标签hh=0的特征为marital&gt;7.5,risk_score&lt;996.5，代表已婚低风险；<br>标签hh=1的特征为marital&lt;=7.5,risk_score&lt;993.5，代表未婚低风险；<br>标签hh=2的特征为对marital没有明显特征，但是risk_score都很高，所以代表高风险。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">dot_hb = tree.export_graphviz(</span><br><span class="line">        clf_hb,</span><br><span class="line">        out_file=None,</span><br><span class="line">        feature_names=hobby,</span><br><span class="line">        class_names=[<span class="string">'0'</span>,<span class="string">'1'</span>],</span><br><span class="line">        max_depth=<span class="number">2</span>,</span><br><span class="line">        filled=True)</span><br><span class="line">graph_hb = pydotplus.graph_from_dot_data(dot_hb)</span><br><span class="line">Image(graph_hb.create_png())</span><br></pre></td></tr></table></figure>
+
+<p>个人偏好聚类的结果树结构如下：<br><img src="/images/hb.png" alt><br>通过决策树可以看出：<br>标签hb=0的特征为interest&gt;0.5,interested_sport较大，代表爱好运动；<br>标签hb=1的特征为interested_sport，代表不爱运动。</p>
+<br>
+
+<p>六、结果说明<br>将结果放到一起解读</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ana = pd.pivot_table(clusters,index='hh',columns='hb',aggfunc='mean').T</span><br><span class="line">ana.swaplevel('hb',0).sortlevel(0)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/3.91.jpg" alt><br>最后，将客户细分为6个簇，对每个簇，描述其特征。<br><img src="/images/3.92.jpg" alt></p>
+
+      </div>
+    </div>
+  </div>
+</div>
+<div class="lx-navigation">
+	<div class="lx-cover prev lx-cover-sm" style="background-image: url(/images/footer_1.jpg)">
+		<div class="overlay"></div>
+		<a class="copy" href="#">
+			<div class="display-t">
+				<div class="display-tc">
+					<div>
+						<span>Next</span>
+						<h3>没有更新的文章</h3>
+					</div>
+				</div>
+			</div>
+		</a>
+	</div>
+        <div class="lx-cover next lx-cover-sm" style="background-image: url(/images/footer_2.jpg)">
+		<div class="overlay"></div>
+		<a class="copy" href="/台北街道老年人需求评估.html">
+			<div class="display-t">
+				<div class="display-tc">
+					<div>
+						<span>Prev</span>
+						<h3>台北街道老年人需求评估</h3>
+					</div>
+				</div>
+			</div>
+		</a>
+	</div>
+</div>
+</div>
+<div class="comment"><div id="comments"></div></div>
+<footer>
+  <div>
+  Copyright &copy; 2019.<a href="/">for data analysis</a><br>Powered by <a href="https://hexo.io" target="_blank">Hexo</a> | Theme <a href="https://lx.blleng.cn" target="_blank">Lx</a><br>
+  </div>
+</footer>
+</div>
+<a href="javascript:;" class="popup-trigger"><i class="menu-item-icon fa fa-search fa-fw"></i></a>
+<div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="Search..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+<button class="menu-trigger"></button>
+<div class="menu">
+  <div class="menu-head">
+    <span class="layer">
+      <div class="col">
+        <div class="row for-pic">
+          <div class="profile-pic">
+            <a href="/"><img src="\images\1.jpg" alt="送温暖的蝎子莱莱的blog"></a>
+          </div>
+        </div>
+        <div class="row for-name">
+          <p>送温暖的蝎子莱莱的blog</p>
+          <span class="tagline">Hello, World!</span>
+        </div>
+      </div>
+    </span>
+  </div>
+  <nav class="menu-container">
+  <ul class="menu-items">
+    <li><span class="item-icon"><i class="fa fa-home fa-fw"></i></span><a href="/">首页</a></li>
+    <li><span class="item-icon"><i class="fa fa-archive fa-fw"></i></span><a href="/archives/">归档</a></li>
+    <li class="has-sub"><span class="item-icon"><i class="fa fa-bookmark fa-fw"></i></span>
+    <span class="dropdown-heading">页面</span><ul>
+      <li><a href="/guestbook">留言</a></li><li><a href="/about">关于</a></li></ul>
+    </li>
+    <li class="has-sub"><span class="item-icon"><i class="fa fa-link fa-fw"></i></span>
+    <span class="dropdown-heading">友链</span><ul>
+      <li> <a href="https://lx.blleng.cn" target="_blank">Theme-Lx</a></li></ul>
+    </li>
+  </ul>
+  </nav>
+</div>
+
+<div class="gototop js-top">
+  <a href="#" class="js-gotop"><i class="fa fa-arrow-up"></i></a>
+</div>
+<script src="/js/jquery.easing.min.js"></script>
+<script src="/js/jquery.waypoints.min.js"></script>
+<script src="/js/jquery.stellar.min.js"></script>
+<script src="/js/main.js"></script>
+<script src="/js/local.search.js"></script>
+
+
+</body>
+</html>
